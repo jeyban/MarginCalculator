@@ -53,31 +53,18 @@
       line-height:1.5em;
     }
     h3{text-align:center;margin-top:0;color:#f97316;}
-    .bold{font-weight:700;color:#f97316;}
-
-    /* --- Take-Profit Row Alignment --- */
     .tp-row{
       display:flex;
       align-items:center;
       gap:8px;
-      margin-top:6px;
-      width:100%;
-      box-sizing:border-box;
-    }
-    .tp-row input[type="checkbox"]{
-      flex:0 0 auto;
-      margin:0;
-      transform:scale(1.1);
-      appearance:auto;
-      -webkit-appearance:checkbox;
+      margin-top:8px;
     }
     .tp-row label{
+      flex:1;
+    }
+    #tpToggle{
+      width:auto;
       margin:0;
-      padding:0;
-      color:#e6eef8;
-      font-size:14px;
-      flex:1 1 auto;
-      text-align:left;
     }
   </style>
 </head>
@@ -86,132 +73,156 @@
     <h3>Crypto Scalp Margin Calculator</h3>
 
     <label>Risk Type</label>
-    <select id="riskType" onchange="toggleMode(); triggerCalc()">
+    <select id="riskType" onchange="toggleMode()">
       <option value="fixed">Fixed ($)</option>
       <option value="percent">% of Capital</option>
     </select>
 
     <div id="capitalWrapper" style="display:none">
       <label>Total Capital (USDT)</label>
-      <input id="capital" type="number" step="any" placeholder="e.g. 100" oninput="triggerCalc()">
+      <input id="capital" type="text" placeholder="e.g. 100">
     </div>
 
     <label id="riskLabel">Risk ($)</label>
-    <input id="riskValue" type="number" step="any" placeholder="e.g. 2" oninput="triggerCalc()">
+    <input id="riskValue" type="text" placeholder="e.g. 2">
 
     <label>Entry Price</label>
-    <input id="entry" type="number" step="any" placeholder="e.g. 30000" oninput="triggerCalc()">
+    <input id="entry" type="text" placeholder="e.g. 30,000">
 
     <label>Stop Loss Price</label>
-    <input id="stop" type="number" step="any" placeholder="e.g. 29990" oninput="triggerCalc()">
+    <input id="stop" type="text" placeholder="e.g. 29,990">
 
-    <label>Leverage (x)</label>
-    <input id="leverage" type="number" step="1" value="100" oninput="triggerCalc()">
-
-    <!-- Take Profit Toggle -->
     <div class="tp-row">
-      <input type="checkbox" id="tpToggle" onchange="toggleTakeProfit(); triggerCalc()">
+      <input type="checkbox" id="tpToggle" onchange="toggleTakeProfit()">
       <label for="tpToggle">Enable Take Profit</label>
     </div>
+    <input id="takeProfit" type="text" placeholder="e.g. 30,200" disabled>
 
-    <div id="tpWrapper" style="display:none;">
-      <label>Take Profit Price</label>
-      <input id="tp" type="number" step="any" placeholder="e.g. 30100" oninput="triggerCalc()">
-    </div>
+    <label>Leverage (x)</label>
+    <input id="leverage" type="text" value="100">
 
     <button onclick="calc()">Calculate</button>
-    <button onclick="eraseAll()">Erase All</button>
+    <button style="background:#334155;color:#fff;" onclick="eraseAll()">Erase All</button>
 
     <div class="out" id="out">Enter values and press Calculate</div>
   </div>
 
 <script>
 function toggleMode(){
-  const riskType=document.getElementById('riskType').value;
-  const capWrapper=document.getElementById('capitalWrapper');
-  const riskLabel=document.getElementById('riskLabel');
-  const riskInput=document.getElementById('riskValue');
-  if(riskType==='percent'){
-    capWrapper.style.display='block';
-    riskLabel.innerText='Risk (%)';
-    riskInput.placeholder='e.g. 1';
-  }else{
-    capWrapper.style.display='none';
-    riskLabel.innerText='Risk ($)';
-    riskInput.placeholder='e.g. 2';
+  const riskType = document.getElementById('riskType').value;
+  const capWrapper = document.getElementById('capitalWrapper');
+  const riskLabel = document.getElementById('riskLabel');
+  const riskInput = document.getElementById('riskValue');
+
+  if(riskType === 'percent'){
+    capWrapper.style.display = 'block';
+    riskLabel.innerText = 'Risk (%)';
+    riskInput.placeholder = 'e.g. 1';
+  } else {
+    capWrapper.style.display = 'none';
+    riskLabel.innerText = 'Risk ($)';
+    riskInput.placeholder = 'e.g. 2';
   }
 }
 
-function formatNumber(num,decimals=2){
-  return isNaN(num)?'-':num.toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
-}
-
 function toggleTakeProfit(){
-  const tpEnabled=document.getElementById('tpToggle').checked;
-  const tpWrapper=document.getElementById('tpWrapper');
-  tpWrapper.style.display=tpEnabled?'block':'none';
+  const tp = document.getElementById('takeProfit');
+  const toggle = document.getElementById('tpToggle');
+  tp.disabled = !toggle.checked;
+  if(!toggle.checked){
+    tp.value = '';
+  }
 }
 
 function eraseAll(){
   document.querySelectorAll('input').forEach(i=>{
-    if(i.type==='checkbox'){i.checked=false;}
-    else{i.value='';}
+    if(i.type !== 'checkbox') i.value='';
+    if(i.id==='takeProfit') i.disabled=true;
+    if(i.id==='tpToggle') i.checked=false;
   });
-  document.getElementById('tpWrapper').style.display='none';
   document.getElementById('out').innerText='Enter values and press Calculate';
 }
 
-function triggerCalc(){setTimeout(calc,100);}
+// --- Format input numbers with commas ---
+document.querySelectorAll('input[type="text"]').forEach(input=>{
+  input.addEventListener('input', e=>{
+    const cursorPos = input.selectionStart;
+    let val = input.value.replace(/,/g,'');
+    if(val && !isNaN(val)){
+      const parts = val.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      input.value = parts.join('.');
+    } else if(val==='') {
+      input.value = '';
+    }
+    input.setSelectionRange(cursorPos, cursorPos);
+  });
+});
+
+function formatNumber(num, decimals = 2) {
+  return num.toLocaleString('en-US', {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+}
+
+function parseNumber(val){
+  return parseFloat(val.replace(/,/g,''));
+}
 
 function calc(){
-  const riskType=document.getElementById('riskType').value;
-  const entry=parseFloat(document.getElementById('entry').value);
-  const stop=parseFloat(document.getElementById('stop').value);
-  const lev=parseFloat(document.getElementById('leverage').value);
-  const out=document.getElementById('out');
-  if(!entry||!stop||!lev){out.innerText="⚠️ Please enter entry, stop, and leverage.";return;}
+  const riskType = document.getElementById('riskType').value;
+  const entry = parseNumber(document.getElementById('entry').value);
+  const stop = parseNumber(document.getElementById('stop').value);
+  const lev = parseNumber(document.getElementById('leverage').value);
+  const tpToggle = document.getElementById('tpToggle').checked;
+  const tpValue = parseNumber(document.getElementById('takeProfit').value);
+  const out = document.getElementById('out');
 
-  let riskUsd=0;
-  if(riskType==='percent'){
-    const cap=parseFloat(document.getElementById('capital').value);
-    const riskPct=parseFloat(document.getElementById('riskValue').value);
-    if(!cap||!riskPct){out.innerText="⚠️ Enter capital and risk %.";return;}
-    riskUsd=cap*(riskPct/100);
-  }else{
-    const riskVal=parseFloat(document.getElementById('riskValue').value);
-    if(!riskVal){out.innerText="⚠️ Enter fixed risk amount.";return;}
-    riskUsd=riskVal;
+  if(!entry || !stop || !lev){
+    out.innerText = "⚠️ Please enter entry, stop, and leverage.";
+    return;
   }
 
-  const stopDist=Math.abs(entry-stop);
-  if(stopDist===0){out.innerText="⚠️ Stop distance cannot be zero.";return;}
-
-  const qty=riskUsd/stopDist;
-  const notional=qty*entry;
-  const margin=notional/lev;
-  const stopPercent=(stopDist/entry)*100;
-
-  const tpEnabled=document.getElementById('tpToggle').checked;
-  let profitText="🎯 Take Profit not defined";
-
-  if(tpEnabled){
-    const tp=parseFloat(document.getElementById('tp').value);
-    if(tp){
-      const rr=(Math.abs(tp-entry)/stopDist);
-      const profit=riskUsd*rr;
-      profitText=`💰 <b class="bold">Profit:</b> $${formatNumber(profit)} (${formatNumber(rr,2)}R)`;
-    }
+  let riskUsd = 0;
+  if(riskType === 'percent'){
+    const cap = parseNumber(document.getElementById('capital').value);
+    const riskPct = parseNumber(document.getElementById('riskValue').value);
+    if(!cap || !riskPct){out.innerText = "⚠️ Enter capital and risk %.";return;}
+    riskUsd = cap * (riskPct / 100);
+  } else {
+    const riskVal = parseNumber(document.getElementById('riskValue').value);
+    if(!riskVal){out.innerText = "⚠️ Enter fixed risk amount.";return;}
+    riskUsd = riskVal;
   }
 
-  out.innerHTML=`
-    🧮 <b>Stop Distance:</b> ${formatNumber(stopPercent,3)}%<br>
+  const stopDist = Math.abs(entry - stop);
+  if(stopDist === 0){out.innerText = "⚠️ Stop distance cannot be zero.";return;}
+
+  const qty = riskUsd / stopDist;
+  const notional = qty * entry;
+  const margin = notional / lev;
+  const stopPercent = (stopDist / entry) * 100;
+
+  let result = `
+    🧮 <b>Stop Distance:</b> ${formatNumber(stopPercent, 3)}%<br>
     💰 <b>Risk Amount:</b> $${formatNumber(riskUsd)}<br>
-    ⚙️ <b>Quantity:</b> ${formatNumber(qty,6)} units<br>
+    ⚙️ <b>Quantity:</b> ${formatNumber(qty, 6)} units<br>
     📈 <b>Position Size:</b> $${formatNumber(notional)}<br>
-    💵 <b class="bold">Margin Required:</b> $${formatNumber(margin)}<br>
-    ⚖️ <b>Leverage:</b> ${formatNumber(lev,0)}x<br>
-    ${profitText}
+    💵 <b>Margin Required:</b> $${formatNumber(margin)}<br>
+    ⚖️ <b>Leverage:</b> ${formatNumber(lev, 0)}x
   `;
+
+  // --- If Take Profit is enabled ---
+  if(tpToggle && tpValue){
+    const tpDist = Math.abs(tpValue - entry);
+    const rr = tpDist / stopDist;
+    const tpPercent = (tpDist / entry) * 100;
+    result += `
+      <br>🎯 <b>Take Profit:</b> $${formatNumber(tpValue)}<br>
+      📊 <b>Reward Distance:</b> ${formatNumber(tpPercent, 3)}%<br>
+      💹 <b>Reward : Risk Ratio:</b> ${formatNumber(rr, 2)}R
+    `;
+  }
+
+  out.innerHTML = result;
 }
 </script>
 </body>
