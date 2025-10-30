@@ -5,66 +5,71 @@
   <title>Crypto Scalp Margin Calculator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body{
-      font-family:Poppins,system-ui;
-      background:#0b1220;
-      color:#e6eef8;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      height:100vh;
-      margin:0;
+    body {
+      font-family: Poppins, system-ui;
+      background: #0b1220;
+      color: #e6eef8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
     }
-    .card{
-      background:#0f1724;
-      padding:25px;
-      border-radius:16px;
-      width:340px;
-      box-shadow:0 8px 30px rgba(0,0,0,0.6);
+    .card {
+      background: #0f1724;
+      padding: 25px;
+      border-radius: 16px;
+      width: 340px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
     }
-    input,select{
-      width:100%;
-      padding:10px;
-      margin:8px 0;
-      border-radius:8px;
-      border:1px solid #263044;
-      background:#061221;
-      color:#e6eef8;
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #263044;
+      background: #061221;
+      color: #e6eef8;
     }
-    button{
-      width:100%;
-      padding:10px;
-      border-radius:8px;
-      border:none;
-      background:#f97316;
-      color:#071322;
-      font-weight:700;
-      margin-top:10px;
-      transition:background .2s;
+    button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      background: #f97316;
+      color: #071322;
+      font-weight: 700;
+      margin-top: 10px;
+      transition: background .2s;
     }
-    button:hover{background:#fb923c;}
-    .out{
-      margin-top:15px;
-      padding:12px;
-      border-radius:8px;
-      background:#081426;
-      color:#cfe9ff;
-      font-size:14px;
-      line-height:1.5em;
+    button:hover { background: #fb923c; }
+    .out {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #081426;
+      color: #cfe9ff;
+      font-size: 14px;
+      line-height: 1.5em;
     }
-    h3{text-align:center;margin-top:0;color:#f97316;}
-    .tp-row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-top:8px;
+    h3 { text-align: center; margin-top: 0; color: #f97316; }
+    .tp-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
     }
-    .tp-row label{
-      flex:1;
+    .tp-row label {
+      flex: 1;
+      text-align: left;
     }
-    #tpToggle{
-      width:auto;
-      margin:0;
+    #tpToggle {
+      width: auto;
+      margin: 0;
+    }
+    .highlight {
+      color: #f97316;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -143,19 +148,16 @@ function eraseAll(){
   document.getElementById('out').innerText='Enter values and press Calculate';
 }
 
-// --- Format input numbers with commas ---
+// --- Fix input comma formatting (with correct caret position) ---
 document.querySelectorAll('input[type="text"]').forEach(input=>{
   input.addEventListener('input', e=>{
-    const cursorPos = input.selectionStart;
-    let val = input.value.replace(/,/g,'');
-    if(val && !isNaN(val)){
-      const parts = val.split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-      input.value = parts.join('.');
-    } else if(val==='') {
-      input.value = '';
-    }
-    input.setSelectionRange(cursorPos, cursorPos);
+    const selectionStart = input.selectionStart;
+    const raw = input.value.replace(/,/g, '');
+    if(isNaN(raw) || raw === '') return;
+    const formatted = parseFloat(raw).toLocaleString('en-US');
+    const diff = formatted.length - raw.length;
+    input.value = formatted;
+    input.setSelectionRange(selectionStart + diff, selectionStart + diff);
   });
 });
 
@@ -206,20 +208,22 @@ function calc(){
     💰 <b>Risk Amount:</b> $${formatNumber(riskUsd)}<br>
     ⚙️ <b>Quantity:</b> ${formatNumber(qty, 6)} units<br>
     📈 <b>Position Size:</b> $${formatNumber(notional)}<br>
-    💵 <b>Margin Required:</b> $${formatNumber(margin)}<br>
-    ⚖️ <b>Leverage:</b> ${formatNumber(lev, 0)}x
+    💵 <b class="highlight">Margin Required:</b> $${formatNumber(margin)}<br>
+    ⚖️ <b>Leverage:</b> ${formatNumber(lev, 0)}x<br>
   `;
 
-  // --- If Take Profit is enabled ---
   if(tpToggle && tpValue){
     const tpDist = Math.abs(tpValue - entry);
     const rr = tpDist / stopDist;
+    const profit = riskUsd * rr;
     const tpPercent = (tpDist / entry) * 100;
     result += `
       <br>🎯 <b>Take Profit:</b> $${formatNumber(tpValue)}<br>
-      📊 <b>Reward Distance:</b> ${formatNumber(tpPercent, 3)}%<br>
-      💹 <b>Reward : Risk Ratio:</b> ${formatNumber(rr, 2)}R
+      💹 <b class="highlight">Reward : Risk Ratio:</b> ${formatNumber(rr, 2)}R<br>
+      💵 <b class="highlight">Profit if TP Hit:</b> $${formatNumber(profit)}<br>
     `;
+  } else {
+    result += `<br>🎯 <b>Take Profit:</b> <span style="color:#f87171;">Not defined</span>`;
   }
 
   out.innerHTML = result;
