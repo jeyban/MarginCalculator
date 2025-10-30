@@ -55,7 +55,7 @@
     h3{text-align:center;margin-top:0;color:#f97316;}
     .bold{font-weight:700;color:#f97316;}
 
-    /* --- FIXED Take-Profit Row Alignment --- */
+    /* --- Take-Profit Row Alignment --- */
     .tp-row{
       display:flex;
       align-items:center;
@@ -78,16 +78,6 @@
       font-size:14px;
       flex:1 1 auto;
       text-align:left;
-    }
-
-    .rr-control{
-      display:none;
-      margin-top:8px;
-    }
-    .rr-value{
-      text-align:right;
-      font-size:13px;
-      color:#fb923c;
     }
   </style>
 </head>
@@ -118,7 +108,7 @@
     <label>Leverage (x)</label>
     <input id="leverage" type="number" step="1" value="100" oninput="triggerCalc()">
 
-    <!-- FIXED TP ROW (aligned left) -->
+    <!-- Take Profit Toggle -->
     <div class="tp-row">
       <input type="checkbox" id="tpToggle" onchange="toggleTakeProfit(); triggerCalc()">
       <label for="tpToggle">Enable Take Profit</label>
@@ -127,10 +117,6 @@
     <div id="tpWrapper" style="display:none;">
       <label>Take Profit Price</label>
       <input id="tp" type="number" step="any" placeholder="e.g. 30100" oninput="triggerCalc()">
-      <div class="rr-control">
-        <input id="rrSlider" type="range" min="0.5" max="10" step="0.5" value="2" oninput="updateRR()">
-        <div class="rr-value">RR: <span id="rrValue">2.0</span>x</div>
-      </div>
     </div>
 
     <button onclick="calc()">Calculate</button>
@@ -163,33 +149,16 @@ function formatNumber(num,decimals=2){
 function toggleTakeProfit(){
   const tpEnabled=document.getElementById('tpToggle').checked;
   const tpWrapper=document.getElementById('tpWrapper');
-  const rrControl=document.querySelector('.rr-control');
   tpWrapper.style.display=tpEnabled?'block':'none';
-  rrControl.style.display=tpEnabled?'block':'none';
 }
 
 function eraseAll(){
   document.querySelectorAll('input').forEach(i=>{
     if(i.type==='checkbox'){i.checked=false;}
-    else if(i.type!=='range'){i.value='';}
+    else{i.value='';}
   });
-  document.querySelector('.rr-control').style.display='none';
   document.getElementById('tpWrapper').style.display='none';
   document.getElementById('out').innerText='Enter values and press Calculate';
-}
-
-function updateRR(){
-  const rr=parseFloat(document.getElementById('rrSlider').value);
-  document.getElementById('rrValue').innerText=rr.toFixed(1);
-  const entry=parseFloat(document.getElementById('entry').value);
-  const stop=parseFloat(document.getElementById('stop').value);
-  if(!entry||!stop)return;
-  const isLong=entry<stop?false:true;
-  const tpInput=document.getElementById('tp');
-  const stopDist=Math.abs(entry-stop);
-  const newTp=isLong?entry+stopDist*rr:entry-stopDist*rr;
-  tpInput.value=newTp.toFixed(2);
-  calc();
 }
 
 function triggerCalc(){setTimeout(calc,100);}
@@ -221,10 +190,9 @@ function calc(){
   const notional=qty*entry;
   const margin=notional/lev;
   const stopPercent=(stopDist/entry)*100;
-  const isLong=entry>stop;
+
   const tpEnabled=document.getElementById('tpToggle').checked;
   let profitText="🎯 Take Profit not defined";
-  let rrText="-";
 
   if(tpEnabled){
     const tp=parseFloat(document.getElementById('tp').value);
@@ -232,7 +200,6 @@ function calc(){
       const rr=(Math.abs(tp-entry)/stopDist);
       const profit=riskUsd*rr;
       profitText=`💰 <b class="bold">Profit:</b> $${formatNumber(profit)} (${formatNumber(rr,2)}R)`;
-      rrText=formatNumber(rr,2);
     }
   }
 
