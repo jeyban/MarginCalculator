@@ -92,10 +92,10 @@
     <input id="riskValue" type="text" placeholder="e.g. 2">
 
     <label>Entry Price</label>
-    <input id="entry" type="text" placeholder="e.g. 30,000">
+    <input id="entry" type="text" placeholder="e.g. 30,000.50">
 
     <label>Stop Loss Price</label>
-    <input id="stop" type="text" placeholder="e.g. 29,990">
+    <input id="stop" type="text" placeholder="e.g. 29,990.75">
 
     <div class="tp-row">
       <input type="checkbox" id="tpToggle" onchange="toggleTakeProfit()">
@@ -148,16 +148,20 @@ function eraseAll(){
   document.getElementById('out').innerText='Enter values and press Calculate';
 }
 
-// --- Fix input comma formatting (with correct caret position) ---
+// --- FIX: Comma formatting that supports decimals & preserves cursor position ---
 document.querySelectorAll('input[type="text"]').forEach(input=>{
   input.addEventListener('input', e=>{
-    const selectionStart = input.selectionStart;
     const raw = input.value.replace(/,/g, '');
-    if(isNaN(raw) || raw === '') return;
-    const formatted = parseFloat(raw).toLocaleString('en-US');
-    const diff = formatted.length - raw.length;
+    if (raw === '' || isNaN(raw)) return;
+    
+    const [intPart, decPart] = raw.split('.');
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formatted = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+    
+    const caretPos = input.selectionStart;
+    const diff = formatted.length - input.value.length;
     input.value = formatted;
-    input.setSelectionRange(selectionStart + diff, selectionStart + diff);
+    input.setSelectionRange(caretPos + diff, caretPos + diff);
   });
 });
 
@@ -216,7 +220,6 @@ function calc(){
     const tpDist = Math.abs(tpValue - entry);
     const rr = tpDist / stopDist;
     const profit = riskUsd * rr;
-    const tpPercent = (tpDist / entry) * 100;
     result += `
       <br>🎯 <b>Take Profit:</b> $${formatNumber(tpValue)}<br>
       💹 <b class="highlight">Reward : Risk Ratio:</b> ${formatNumber(rr, 2)}R<br>
